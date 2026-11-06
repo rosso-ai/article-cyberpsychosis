@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>画像認識：過剰な義体化による暴走体験シミュレーター（レビュー用）</title>
+<style>
+:root{--bg:#f7f7f5;--fg:#1a1a1a;--mut:#7a7a75;--line:#e3e3df;--card:#fff;
+--acc:#b4532a}
+@media(prefers-color-scheme:dark){:root{--bg:#16161a;--fg:#e8e8e4;--mut:#9a9a94;
+--line:#2e2e34;--card:#1e1e23;--acc:#e08a5e}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-size:16px;line-height:1.9;
+font-family:-apple-system,"Segoe UI","Hiragino Sans","Noto Sans JP",sans-serif}
+.note{max-width:620px;margin:0 auto;background:var(--card);padding:40px 0 120px}
+.bar{max-width:620px;margin:0 auto 22px;background:#fff8e6;border:1px solid #e8d9a8;
+border-radius:8px;padding:13px 17px;font-size:13.5px;line-height:1.8;color:#4a3f1e}
+@media(prefers-color-scheme:dark){.bar{background:#2a2618;border-color:#4a4228;color:#e8dcb8}}
+h1{font-size:28px;line-height:1.5;margin:0 0 30px}
+h2{font-size:21px;margin:52px 0 12px}
+h3{font-size:17px;margin:34px 0 10px}
+p{margin:22px 0}
+img{width:100%;display:block;margin:26px 0 6px;border:1px solid var(--line)}
+.cap{color:var(--mut);font-size:13px;margin:0 0 26px;line-height:1.7}
+blockquote{margin:24px 0;padding:12px 0 12px 18px;border-left:3px solid var(--line);
+color:var(--mut)}
+blockquote p{margin:2px 0}
+pre{background:var(--bg);border-radius:5px;padding:14px 16px;overflow-x:auto;
+font-size:13px;line-height:1.7;margin:24px 0;
+font-family:ui-monospace,Consolas,monospace}
+code{background:var(--bg);padding:1px 5px;border-radius:3px;font-size:14px}
+ul,ol{margin:22px 0;padding-left:1.5em}li{margin:8px 0}
+hr{border:0;border-top:1px solid var(--line);margin:34px 0}
+.au{border:1px dashed var(--line);border-radius:8px;padding:14px 16px;margin:26px 0;
+background:var(--bg)}
+.au .t{font-weight:600;font-size:14px;color:var(--acc)}
+.au .s{font-size:12.5px;color:var(--mut);margin-top:4px}
+a{color:#2a6b7c}
+img.eye{margin:0 0 26px;border:0;border-radius:6px}
+</style>
+</head>
+<body>
+<div class="bar"><b>これはレビュー用のページです。</b>note に貼ったときの見え方を620px幅で再現しています。動画は確認のためこのページに直接置いています。気づいた点があれば教えてください。</div>
+
+<div class="note">
+<h1>画像認識：過剰な義体化による暴走体験シミュレーター</h1>
+<h2>はじめに</h2>
+<p>当社には現在、身体の過半を機械に置き換えた社員は在籍しておりません。しかし、これから数年でウェアラブルデバイスやサイバーウェア、クロームにインプラント、義体化技術の向上により、人間が生身で生活することのほうが珍しくなるでしょう。</p>
+<p>そこで問題となるのが、『過剰な義体化による人間性の暴走』です。『サイバーパンク2077』などのSF作品では『サイバーサイコシス』と呼ばれる現象です。</p>
+<p>飲酒体験ゴーグルなどの疑似体験装置にならい、世界の見え方がどう変わるのかを前もって体験し、過剰な義体化の危険性を共有・体験するためのシミュレーターを、画像認識を用いて作成しました。本記事では、試作に用いたAIモデルと、ブラウザ上で動かすための画像処理・アニメーション制御の仕組みをまとめます。</p>
+<video src="demo_main.mp4?v=4f3782a0" controls muted loop playsinline preload="metadata" style="width:100%;display:block;margin:26px 0 6px"></video>
+<p class="cap">動画1　本記事を作成した私に対し、過剰な義体化による暴走体験シミュレーターを行った様子です。</p>
+<h2>処理の全体像と使用モデル</h2>
+<p>本シミュレーターの導入に、手術は必要ありません。処理はすべてブラウザの中で完結します。映像を1コマ受け取ったら、AIモデルで顔、人物、手、奥行きを読み取り、その結果を使って画像処理とエフェクトの生成を行い、Canvas 2Dで合成して表示します。</p>
+<img src="img01.png?v=639ebb75" alt="">
+<p class="cap">図1　1コマを処理する流れ。水色がAIモデル、橙が画像処理とエフェクトの生成です。</p>
+<p>使ったモデルは次の4つです。</p>
+<img src="img02.png?v=74610d32" alt="">
+<p class="cap">表1　使用したモデル。</p>
+<h2>目のグリッチを作る</h2>
+<p>目を増やす手術には準備が要りますが、ブラウザなら24fpsで何度でも増やせます。</p>
+<img src="img03.jpg?v=6662a1e2" alt="">
+<p class="cap">図2　目のグリッチが激しいときの1コマ。</p>
+<h3>顔・目・虹彩を検出する</h3>
+<p>目のエフェクトはすべてFace Landmarkerの顔の点を基準にしています。使うのはまぶたの輪郭の点と虹彩の点で、虹彩の点からは黒目の円を求めます。</p>
+<img src="img04.jpg?v=fd5f03b8" alt="">
+<p class="cap">図3　顔の点の可視化。白い点が顔の478点、黄と水色の線が目の輪郭、赤い円が黒目です。</p>
+<h3>元の目を切り抜いて複製する</h3>
+<p>グリッチは元の目の質感を保ったまま、異常な残像のように見せたいと考えました。そこで、元の画素をまぶたの形のマスクで切り抜き、色を変えずに複製しています。</p>
+<img src="img05.jpg?v=9f3b6ae7" alt="">
+<p class="cap">図4　連続する5コマ。左端が元の画像、上段（iris）が黒目の複製、下段（eye）が目全体の複製です。</p>
+<video src="demo_glitch.mp4?v=c666a430" controls muted loop playsinline preload="metadata" style="width:100%;display:block;margin:26px 0 6px"></video>
+<p class="cap">動画2　私の動画に対して目のグリッチをかけた映像。顔の向きや上半身が動いても、グリッチは両目についていきます。</p>
+<h3>まばたきしても開眼状態を維持する</h3>
+<p>まばたきは、どこか人間を人間らしく見せてしまうものです。人間性の暴走体験シミュレーターとしては、自己の人間性の損失をより実感させやすくする必要があります。</p>
+<p>まばたき防止は、直前の開いた目を記録しておき、閉じかけた目の上に重ねることで達成しております。</p>
+<p>まぶたの閉じかけの判定には、Face LandmarkerのeyeBlinkスコアと、目の高さを幅で割った開き具合（目の縦横比）の2つを使います。</p>
+<img src="img06.png?v=e5f0f622" alt="">
+<p class="cap">図5　開いた目を重ねるかどうかの判定。値はいずれも既定値で、調整ページで変更できます。</p>
+<video src="blink_compare.mp4?v=5a563a6b" controls muted loop playsinline preload="metadata" style="width:100%;display:block;margin:26px 0 6px"></video>
+<p class="cap">動画3　まばたき防止の比較。1つの顔を鼻の位置で分け、左半分は入力のまま、右半分はまばたき防止をかけています。目を2秒閉じる場面を避けて切り出し、重ね続ける最長時間を0.9秒に延ばしています。</p>
+<h3>目の色を変更する</h3>
+<p>黒目の大きさと色、瞳孔の色と点滅も変えられます。黒目の中心と半径が取得できているので、、瞳孔は黒目と同じ中心の円として塗っています。また、角膜や瞳孔を点滅させることもできるなど、多数の設定を備えており、人工眼球を埋め込む前に見た目がどう変化するかの確認も行えます。</p>
+<video src="eye_presets.mp4?v=d3401c2c" controls muted loop playsinline preload="metadata" style="width:100%;display:block;margin:26px 0 6px"></video>
+<p class="cap">動画4　目の色と点滅の設定例</p>
+<h2>赤い閃光を作る</h2>
+<p>暴走する肢体から赤い閃光が走るのはSF世界では業界標準です。</p>
+<p>閃光は人物の周囲や指先から出るように見せたいと考えました。そのためには、人物の輪郭を、線の始点に使える点の列にする必要があります。</p>
+<p>Selfie Segmenterの出力は、画素ごとに人物かどうかを示すマスクです。このマスクの境界をたどって、点の列にします（図6）。</p>
+<img src="img07.jpg?v=6622af14" alt="">
+<p class="cap">図6　輪郭を点の列にする手順。私の顔の静止画で計算した結果です。</p>
+<p>手が写っていれば、Hand Landmarkerの21点のうち指先を始点にし、指の付け根から指先へ向かう向きを線の向きにします。</p>
+<h3>線とアニメーションを描く</h3>
+<p>線の形は、折れ線の点ごとに幅を持たせ、法線の両側へずらした点を結んだ多角形です。これをベタ塗りするので、太さは途中で急に変わります。発光のぼかしは入れていません。</p>
+<img src="img08.png?v=5fe5c6a1" alt="">
+<p class="cap">図7　線の作り方の模式図。破線が折れ線の芯で、点ごとの幅で両側へずらした多角形を塗ります。</p>
+<p>閃光の動きは、不規則に出現し、急に伸び、根元から消えていくようにしたいと考えました。</p>
+<p>閃光には2つの型があります。1つ目の輪郭のそばから広がる線（以下、広がる閃光）では、1回の発動で出す線の形を最初に全部決めて、線ごとに出る時刻、伸びる長さ、消える速さを持たせます。時間で変えるのは、線のどの範囲を見せるかだけです。線が一度に出たり消えたりしないように、出る時刻と消える時刻は線ごとに散らしています。</p>
+<video src="spread_compare.mp4?v=0fc429ba" controls muted loop playsinline preload="metadata" style="width:100%;display:block;margin:26px 0 6px"></video>
+<p class="cap">動画5　広がる閃光の比較。左は全部の線を同時に出す設定、右は出る時刻を30コマの幅で散らした設定です。入力の動画は尺を延ばすために往復させています。</p>
+<img src="img09.png?v=f473f830" alt="">
+<p class="cap">図8　広がる閃光の実際の1回分のタイムライン。線が出る時刻を30コマの幅で散らした設定です。</p>
+<h3>AIで奥行きを推定する</h3>
+<p>線を人物のまわりに描くだけでは、映像は平面的に見えます。部屋の奥行きを感じさせるには、画面のどの場所が遠いのかを知る必要があります。そこで、深度センサーのないWebカメラでも使えるように、Depth Anything V2 Smallで1枚の画像から奥行きを推定しました。</p>
+<img src="img10.jpg?v=4d112658" alt="">
+<p class="cap">図9　奥行きの推定。明るいほど近く、暗いほど遠い場所です。</p>
+<h3>閃光が部屋を跳ねる様子を描く</h3>
+<p>部屋の広がりを感じさせるために、閃光の2つ目の型として、太い線1本が空間を横切って着地し、折り返して次へ飛ぶ動き（以下、跳ねる閃光）を作りました。</p>
+<video src="demo_bounce.mp4?v=29d29c0c" controls muted loop playsinline preload="metadata" style="width:100%;display:block;margin:26px 0 6px"></video>
+<p class="cap">動画6　跳ねる閃光の映像（10秒）。動画2と同じ入力で、目のグリッチも同時に出しています。</p>
+<p>奥行きは、主に閃光の次の着地点を選ぶために使います。線の途中の形は2次元で描くので、奥行きの推定が粗くても描画は崩れません。</p>
+<p>着地点を選ぶ前に、ソファや椅子のような手前の物を奥行きから取り除きます。その後ろにある床や壁の奥行きで着地点を比べるためです。視差で見ると手前の物は山になるので、モルフォロジー処理の「オープニング」（最小値フィルタのあとに最大値フィルタをかける処理）で山だけを削ります。窓の大きさは画面の幅の約4分の1です。削ったあとの奥行きの傾きからは面の向きも求め、着地点の点数に使います。</p>
+<img src="img11.jpg?v=aadfe7da" alt="">
+<p class="cap">図10　手前の物を除いた奥行き（左）と、そこから求めた面の向き（右）。</p>
+<p>着地するたびに候補を作って点数を付け、一番高い点を次の着地点にします。線が手前から奥へ進むように狙いの奥行きを変え、前の線からの折れ角は140度に近づけます。奥行きの値は相対的なものなので、画面の中での順位に直して比べます（図11）。</p>
+<img src="img12.jpg?v=903c48b2" alt="">
+<p class="cap">図11　着地点の候補と選択結果。</p>
+<p>線は3回跳ねて、最後に小さな折れ線を出して終わります（図12、図13）。</p>
+<img src="img13.png?v=e85ca684" alt="">
+<p class="cap">図12　跳ねる閃光のタイムライン。</p>
+<img src="img14.jpg?v=4a1443f4" alt="">
+<p class="cap">図13　動画1の最初の閃光の連続コマ。左上の数字は動画のコマの番号（24fps）です。目のグリッチも同時に出ています。</p>
+<h2>動かすモデルの絞り込みと調整</h2>
+<p>グリッチを見せるシミュレーターで処理落ちすると、どちらがグリッチなのか分からなくなるため、なるべく処理は軽くしたいですね。4つのモデルを毎コマすべて動かす必要はないため、モデルごとに動かすタイミングを絞りました。</p>
+<ul>
+  <li><b>人物の検出</b>：輪郭は閃光の線を表示するためにしか使わないので、閃光をオンにしている間だけ動かします。</li>
+  <li><b>手の検出</b>：手の位置は線を表示ときにしか使わないので、閃光が出ている間だけ、1コマおきに動かします。</li>
+  <li><b>奥行きの推定</b>：閃光の発動時刻は乱数から前もって決まるので、発生する0.15秒前に1回だけ推定します。推論を待つ間も描画は止まりません。</li>
+</ul>
+<p>表現は映像を見ながらGUIで調整しました。グリッチの強さと色、閃光の発生頻度と動きなどをスライダーで変えると、ブラウザの映像にすぐ反映されます。たとえば動画5の右は、広がる閃光の「出るタイミングのばらつき」を既定の14コマから30コマに変えた設定です。設定はJSONとして保存できます。</p>
+<img src="img15.png?v=b5a9f32d" alt="">
+<p class="cap">図14　調整用のページ。掲載にあたり、画面の一部の説明文と数値の表示を隠しています。</p>
+<h2>おわりに</h2>
+<p>顔、人物、手、奥行きの推定と画像処理を組み合わせ、目のグリッチと赤い閃光をブラウザの中で描画しました。元の画素を保ったまま複製する目のグリッチや、開いた目を重ねるまばたき制御、時間差を持たせた線の描画、奥行きの順位に応じた着地点の決定など、各処理に見せたい表現を反映しました。</p>
+<p>数年後には、この記事も私の生身の時代の資料として貴重なものとなっているはずです。</p>
+</div>
+</body>
+</html>
